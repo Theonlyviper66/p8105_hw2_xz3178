@@ -1,0 +1,54 @@
+---
+title: "HW2"
+author: "Xuesen Zhao"
+date: "2022-10-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+Transit = read_csv("./data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv") %>%
+  janitor::clean_names() %>% 
+  select(line:entry,vending,ada) %>%
+  mutate(entry = ifelse(entry=="YES",TRUE,FALSE)) %>%
+  mutate(vending = ifelse(vending=="YES",TRUE,FALSE)) 
+```
+
+The original dataset contains information about the entrance and exit for each listed subway station in NYC and it had 1868 observations and 32 rows. The column names were formated and coerced into lower case, and 19 variables were selected from the original dataset, including line, station name, station latitude and longitude, whether a route (1-11) stops at that station, entrance type, entry (open or not), vending, and ADA compliance. The resulting dataset now contains 1868 rows and 19 columns. 
+
+Yet, the dataset is not completely clean. There are many rows that contains missing values, and some of the categorical variables are recorded as a character type and they should be converted to a factor variable accordingly. 
+
+```{r}
+# distinct station
+distinct(Transit, station_name,line,.keep_all = TRUE) 
+# ADA compliant
+ada_TRUE = nrow(filter(Transit,ada=TRUE))
+# Entry = TRUE, AND vending = FALSE
+filter(Transit, vending = FALSE , entry = TRUE)
+```
+
+There are 465 stations that have a distinct combination of station name and line. All the 1868 subway stations are ada compliant. There is no station that has entrance/exits without vending but allow entrance. 
+
+```{r}
+Transit_tidy = Transit %>%
+  distinct(station_name,line,.keep_all = TRUE) %>%
+  pivot_longer(
+    route1:route11,
+    names_to = "Route Name",
+    values_to = "Route Number"
+  )
+```
+
+* I don't know how to do the last question for question 1.
+
+
