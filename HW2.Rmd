@@ -13,42 +13,94 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
+library(readxl)
 ```
 
 
 ```{r}
-Transit = read_csv("./data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv") %>%
+Transit = read_csv("./data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv",col_types = cols(Route8 = "c", Route9 = "c", Route10 = "c", Route11 = "c")) %>%
   janitor::clean_names() %>% 
-  select(line:entry,vending,ada) %>%
+  select(line:entry,exit_only, vending,  
+    ada) %>%
   mutate(entry = ifelse(entry=="YES",TRUE,FALSE)) %>%
   mutate(vending = ifelse(vending=="YES",TRUE,FALSE)) 
 ```
 
-The original dataset contains information about the entrance and exit for each listed subway station in NYC and it had 1868 observations and 32 rows. The column names were formated and coerced into lower case, and 19 variables were selected from the original dataset, including line, station name, station latitude and longitude, whether a route (1-11) stops at that station, entrance type, entry (open or not), vending, and ADA compliance. The resulting dataset now contains 1868 rows and 19 columns. 
+The original dataset contains information about the entrance and exit for each listed subway station in NYC and it had 1868 observations and 32 rows. The column names were formated and coerced into lower case, and 20 variables were selected from the original dataset, including line, station name, station latitude and longitude, whether a route (1-11) stops at that station, entrance type, entry or exit, vending, and ADA compliance. The resulting dataset now contains 1868 rows and 20 columns. 
 
-Yet, the dataset is not completely clean. There are many rows that contains missing values, and some of the categorical variables are recorded as a character type and they should be converted to a factor variable accordingly. 
+Yet, the dataset is not completely clean. There are many rows that contains missing values, route number should be a separate variable. 
 
 ```{r}
 # distinct station
 distinct(Transit, station_name,line,.keep_all = TRUE) 
 # ADA compliant
-ada_TRUE = nrow(filter(Transit,ada=TRUE))
+Transit %>% 
+  filter(ada == TRUE) %>% 
+  select(station_name, line) %>% 
+  distinct
 # Entry = TRUE, AND vending = FALSE
-filter(Transit, vending = FALSE , entry = TRUE)
+Transit %>% 
+  filter(vending == "NO") %>% 
+  pull(entry) %>% 
+  mean
 ```
 
-There are 465 stations that have a distinct combination of station name and line. All the 1868 subway stations are ada compliant. There is no station that has entrance/exits without vending but allow entrance. 
+There are 465 stations that have a distinct combination of station name and line. 84 Stations are ada compliant. There is no station that has entrance/exits without vending but allow entrance. 
 
 ```{r}
-Transit_tidy = Transit %>%
-  distinct(station_name,line,.keep_all = TRUE) %>%
+Transit %>% 
   pivot_longer(
     route1:route11,
-    names_to = "Route Name",
-    values_to = "Route Number"
-  )
+    names_to = "route_num",
+    values_to = "route") %>% 
+  filter(route == "A") %>% 
+  select(station_name, line) %>% 
+  distinct
+
+Transit %>% 
+  pivot_longer(
+    route1:route11,
+    names_to = "route_num",
+    values_to = "route") %>% 
+  filter(route == "A", ada == TRUE) %>% 
+  select(station_name, line) %>% 
+  distinct
 ```
 
-* I don't know how to do the last question for question 1.
+There are 60 distinct stations that serve the A train, and 17 of them are ADA compliant. 
 
+## Question 2
+
+```{r}
+Trash_wheel = read_excel("./data/Trash_Wheel.xlsx",sheet = 1, range = "A2:N534") %>%
+  janitor::clean_names() %>% 
+  drop_na() %>% 
+  mutate(Type="Mr",sports_balls=as.numeric(round(sports_balls,0)))
+
+```
+
+```{r}
+Professor_wheel = read_excel("./data/Trash_Wheel.xlsx",sheet = 2, range = "A2:N117") %>%
+  janitor::clean_names() %>% 
+  drop_na() %>% 
+  mutate(Type="Professor",sports_balls=as.numeric(round(sports_balls,0)))
+```
+
+
+```{r}
+combined_wheel = left_join(
+  Trash_wheel,Professor_wheel,by="dumpster"
+)
+combined_wheel %>%
+  filter(Type.y=="Professor") %>%
+  pull(weight_tons.y)%>%
+  sum
+
+combined_wheel %>%
+  filter(Type.x=="Mr",year.x==2020)%>%
+  pull(sports_balls.x)%>%
+  sum
+```
+
+The total weight of trash collected by Professor Trash Wheel was 135.5 tons. The total number of sports balls collected by Mr. Trash Wheel in 2020 was 856. 
 
